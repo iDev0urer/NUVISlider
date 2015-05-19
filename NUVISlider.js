@@ -27,32 +27,25 @@
         sections = slideCount/config.elementsToShow;
         anchors = $('body').find(config.anchor);
         anchorCount = anchors.length;
-        width = $('body').width();
         var active = false;
         var direction = config.direction === null ? 'rtl' : config.direction;
         
         // Initialize the slider
         var init = function() {
+            resizeSlider();
             obj.buildSlides();
             if (config.autoPlay) {
                 obj.startAutoPlay();
             }
         };
         
-        // Add event listener for when the anchor is clicked
-        $(config.anchor).on('click', function(e) {
-            e.preventDefault();
-            var slideId = $(this).attr('href');
-            var slide = elem.find(slideId).index();
-            if (active === false) {
-                obj.gotoSlide(slide);
-                
-                if (config.autoPlay === true) {
-                    obj.stopAutoPlay();
-                    obj.startAutoPlay();
-                }
-            }
-        });
+        var resizeSlider = function() {
+            width = $('body').width();
+        };
+        
+        var currentSlide = function() {
+            return $(config.slideElement + '.'+config.activeClass).index();
+        };
         
         if (config.pauseOnHover === true && config.autoPlay === true) {
             $(config.slideElement).parent().on("mouseenter", function() { obj.stopAutoPlay(); console.log('paused'); } );
@@ -60,22 +53,23 @@
         }
         
         // Build out the slides
-        this.buildSlides = function() {
+        this.buildSlides = function(startSlide) {
             
             var slide, i;
+            startSlide = startSlide || 0;
             
             for (i=0;i<slideCount; i++) {
                 slide = slides[i];
                 
                 if (direction === 'rtl') {
-                    if (i === 0) {
+                    if (i === startSlide) {
                         $(slide).css( 'left', '0px' ).addClass(config.activeClass);
                     } else {
                         $(slide).css({ left: width }).removeClass(config.activeClass);
                     }
                 }
                 else if (direction === 'ltr') {
-                    if (i === 0) {
+                    if (i === startSlide) {
                         $(slide).css( 'left', '0px' ).addClass(config.activeClass);
                     } else {
                         $(slide).css({ left: -width }).removeClass(config.activeClass);
@@ -136,6 +130,27 @@
         this.stopAutoPlay = function() {
             clearInterval(interval);
         };
+        
+        // Event listeners //
+        // Add event listener for when the anchor is clicked
+        $(config.anchor).on('click', function(e) {
+            e.preventDefault();
+            var slideId = $(this).attr('href');
+            var slide = elem.find(slideId).index();
+            if (active === false) {
+                obj.gotoSlide(slide);
+                
+                if (config.autoPlay === true) {
+                    obj.stopAutoPlay();
+                    obj.startAutoPlay();
+                }
+            }
+        });
+        
+        $(window).resize(function() {
+            resizeSlider();
+            obj.buildSlides(currentSlide());
+        });
         
         
         init();
