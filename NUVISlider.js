@@ -4,16 +4,17 @@
         var obj = this;
 
         var defaults = {
-            slideElement: '.slide',
-            anchor: '.slide-link',
-            activeClass: 'active',
-            elementsToShow: 1,
-            autoPlay: true,
-            pauseOnHover: true,
+            slideElement        : '.slide',
+            anchor              : '.slide-link',
+            activeClass         : 'active',
+            elementsToShow      : 1,
+            autoPlay            : true,
+            direction           : 'ltr',
+            pauseOnHover        : true,
             timing: 5000,
-            slideTransition: {
-                easing: 'easeIn',
-                duration: 500
+            slideTransition     : {
+                easing          : 'easeIn',
+                duration        : 500
             }
         };
 
@@ -28,6 +29,7 @@
         anchorCount = anchors.length;
         width = $('body').width();
         var active = false;
+        var direction = config.direction === null ? 'rtl' : config.direction;
         
         // Initialize the slider
         var init = function() {
@@ -47,12 +49,12 @@
                 
                 if (config.autoPlay === true) {
                     obj.stopAutoPlay();
-                    
+                    obj.startAutoPlay();
                 }
             }
         });
         
-        if (config.pauseOnHover === true) {
+        if (config.pauseOnHover === true && config.autoPlay === true) {
             $(config.slideElement).parent().on("mouseenter", function() { obj.stopAutoPlay(); console.log('paused'); } );
             $(config.slideElement).parent().on("mouseleave", function() { obj.startAutoPlay(); console.log('playing'); } );
         }
@@ -65,11 +67,21 @@
             for (i=0;i<slideCount; i++) {
                 slide = slides[i];
                 
-                if (i === 0) {
-                    $(slide).css( 'left', '0px' ).addClass(config.activeClass);
-                } else {
-                    $(slide).css({ left: width }).removeClass(config.activeClass);
+                if (direction === 'rtl') {
+                    if (i === 0) {
+                        $(slide).css( 'left', '0px' ).addClass(config.activeClass);
+                    } else {
+                        $(slide).css({ left: width }).removeClass(config.activeClass);
+                    }
                 }
+                else if (direction === 'ltr') {
+                    if (i === 0) {
+                        $(slide).css( 'left', '0px' ).addClass(config.activeClass);
+                    } else {
+                        $(slide).css({ left: -width }).removeClass(config.activeClass);
+                    }
+                }
+                
             }
             
         };
@@ -81,12 +93,23 @@
             toSlide = $(slides[slide]).index();
             fromSlide = $(config.slideElement + '.'+config.activeClass).index();
             
-            $(slides[toSlide]).animate({ left: '0px' }, config.slideTransition.duration).addClass(config.activeClass);
-            $(slides[fromSlide]).animate({ left: -width }, config.slideTransition.duration, function() {
-                $(this).removeClass(config.activeClass);
-                $(this).css({ left: width });
-                active = false;
-            });
+            if (direction === 'rtl') {
+                $(slides[toSlide]).animate({ left: '0px' }, config.slideTransition.duration).addClass(config.activeClass);
+                $(slides[fromSlide]).animate({ left: -width }, config.slideTransition.duration, function() {
+                    $(this).removeClass(config.activeClass);
+                    $(this).css({ left: width });
+                    active = false;
+                });
+            }
+            else if (direction === 'ltr') {
+                $(slides[toSlide]).animate({ left: '0px' }, config.slideTransition.duration).addClass(config.activeClass);
+                $(slides[fromSlide]).animate({ left: width }, config.slideTransition.duration, function() {
+                    $(this).removeClass(config.activeClass);
+                    $(this).css({ left: -width });
+                    active = false;
+                });
+            }
+            
         };
         
         this.gotoNext = function() {
@@ -103,14 +126,15 @@
             obj.gotoSlide(nextSlide);
         };
         
+        var interval;
         this.startAutoPlay = function() {
-            var interval = setInterval(function() { 
+            interval = setInterval(function() { 
                 obj.gotoNext(); 
             }, config.timing);
         };
-        
+
         this.stopAutoPlay = function() {
-            clearInterval(obj.startAutoPlay);
+            clearInterval(interval);
         };
         
         
