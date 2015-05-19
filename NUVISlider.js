@@ -1,159 +1,137 @@
-/*!
- * slideMe jQuery Plugin
- * Original author: @iDev0urer
- * Licensed under the MIT license
- */
+(function ($) {
+    var NUVISlider = function (element, options) {
+        var elem = $(element);
+        var obj = this;
 
-;(function ( $, window, document, undefined ) {
+        var defaults = {
+            slideElement: '.slide',
+            anchor: '.slide-link',
+            activeClass: 'active',
+            elementsToShow: 1,
+            autoPlay: true,
+            pauseOnHover: true,
+            timing: 5000,
+            slideTransition: {
+                easing: 'easeIn',
+                duration: 500
+            }
+        };
 
-        // Create the defaults
-        var pluginName = 'NUVISlider',
-            defaults = {
-                slideElement    : '.slide',
-                anchor          : '.slide-link',
-                activeClass     : 'active',
-                elementsToShow  : 1,
-                automatic       : false,
-                pauseOnHover    : true,
-                timing          : 5000,
-                slideTransition : {
-                    easing      : 'easeIn',
-                    duration    : 1500
-                }
-            };
-
-        function Plugin( element, options ) {
-            this.element = element;
-
-            // jQuery has an extend method that merges the 
-            // contents of two or more objects, storing the 
-            // result in the first object. The first object 
-            // is generally empty because we don't want to alter 
-            // the default options for future instances of the plugin
-            this.options = $.extend( {}, defaults, options) ;
-
-            this._defaults = defaults;
-            this._name = pluginName;
-
-            this.init();
-        }
-
-        Plugin.prototype.init = function () {
-
-        var options, self, slide, slides, slideCount, anchors, anchorCount, href, thisSlide, pos, index,i, firstEl, width, currentSlide, paused;
-
-        options = this.options;
-        self = this.element;
-        slides = $(self).find(options.slideElement);
+        var config = $.extend(defaults, options || {});
+        
+        var slides, slideCount, sections, anchors, anchorCount, width;
+        
+        slides = $(elem).find(config.slideElement);
         slideCount = slides.length;
-        sections = slideCount/options.elementsToShow;
-        anchors = $('body').find(options.anchor);
+        sections = slideCount/config.elementsToShow;
+        anchors = $('body').find(config.anchor);
         anchorCount = anchors.length;
         width = $('body').width();
-            
-        function init() {
-            position_slides();
-            $(options.anchor + ':first-child').addClass(options.activeClass);
-            
-            if (options.automatic == true) {
-                paused = false;
-                playSlider();
+        var active = false;
+        
+        // Initialize the slider
+        var init = function() {
+            obj.buildSlides();
+            if (config.autoPlay) {
+                obj.startAutoPlay();
             }
-            
-            if (options.pauseOnHover == true) {
-                $(options.slideElement).parent().on("mouseenter", function() { paused = true; console.log('paused'); } );
-                $(options.slideElement).parent().on("mouseleave", function() { paused = false; console.log('playing'); } );
+        };
+        
+        // Add event listener for when the anchor is clicked
+        $(config.anchor).on('click', function(e) {
+            e.preventDefault();
+            var slideId = $(this).attr('href');
+            var slide = elem.find(slideId).index();
+            if (active === false) {
+                obj.gotoSlide(slide);
+                
+                if (config.autoPlay === true) {
+                    obj.stopAutoPlay();
+                    
+                }
             }
-            
-            console.log($(options.slideElement).parent());
+        });
+        
+        if (config.pauseOnHover === true) {
+            $(config.slideElement).parent().on("mouseenter", function() { obj.stopAutoPlay(); console.log('paused'); } );
+            $(config.slideElement).parent().on("mouseleave", function() { obj.startAutoPlay(); console.log('playing'); } );
         }
+        
+        // Build out the slides
+        this.buildSlides = function() {
             
-        function position_slides() {
+            var slide, i;
             
             for (i=0;i<slideCount; i++) {
                 slide = slides[i];
                 
-                if (i!=0) {
-                    $(slide).css({ left: width, opacity: 0 }).removeClass(options.activeClass);
+                if (i === 0) {
+                    $(slide).css( 'left', '0px' ).addClass(config.activeClass);
                 } else {
-                    $(slide).css( 'left', '0px' ).addClass(options.activeClass);
+                    $(slide).css({ left: width }).removeClass(config.activeClass);
                 }
             }
             
-        }
+        };
+        
+        // Go to a particular slide
+        this.gotoSlide = function(slide) {
+            var toSlide, fromSlide;
+            active = true;
+            toSlide = $(slides[slide]).index();
+            fromSlide = $(config.slideElement + '.'+config.activeClass).index();
             
-        $(options.anchor).on('click', function(e) {
-            e.preventDefault();
-            href = $(this).attr('href');
-            href = $(href).index();
+            $(slides[toSlide]).animate({ left: '0px' }, config.slideTransition.duration).addClass(config.activeClass);
+            $(slides[fromSlide]).animate({ left: -width }, config.slideTransition.duration, function() {
+                $(this).removeClass(config.activeClass);
+                $(this).css({ left: width });
+                active = false;
+            });
+        };
+        
+        this.gotoNext = function() {
+            var currentSlide, nextSlide;
             
-            $(this).addClass(options.activeClass);
-            slideTo(href);
-        });
-            
-        function playSlider() {
-            timing = options.timing;
-                setTimeout (function() {
-                    if (paused == false) {
-                        slideToNext();                
-                    }
-                    playSlider();
-                }, timing);
-        }
-            
-        function slideToNext() {
-            currentSlide = $(options.slideElement + '.'+options.activeClass).index();
-            var nextSlide = currentSlide + 1;
+            currentSlide = $(config.slideElement + '.'+config.activeClass).index();
+            nextSlide = currentSlide + 1;
             if (nextSlide < slideCount) {
                 nextSlide = currentSlide + 1;
             } else {
                 nextSlide = 0;
             }
             
-            slideTo(nextSlide);
+            obj.gotoSlide(nextSlide);
         };
-            
-        function slideTo(index) {
-            nextSlide = $(slides[index]);
-            pos = nextSlide.css('left');
-            currentAnchor = $('a[href="#' + nextSlide.attr('id') + '"]');
-            
-            
-            $.each($(options.anchor), function(i,el) {
-                $(el).removeClass(options.activeClass);
-            });
-            
-            currentAnchor.addClass(options.activeClass);
-            
-            for  (i=0; i<slideCount; i++) {
-                
-                slide = slides[i];
-
-                if ( i == nextSlide.index() ) {
-                    
-                    $(slide).css({ opacity: 1 }).animate({ left: '0px' }, options.slideTransition.duration).addClass(options.activeClass);
-                    
-                } else {
-                    $(slides[i]).animate({ left: -width }, options.slideTransition.duration, function(e) {
-                        $(this).css({ left: width, opacity: 0 }).removeClass(options.activeClass);
-                    });
-                }
-            }
-        }
-            
+        
+        this.startAutoPlay = function() {
+            var interval = setInterval(function() { 
+                obj.gotoNext(); 
+            }, config.timing);
+        };
+        
+        this.stopAutoPlay = function() {
+            clearInterval(obj.startAutoPlay);
+        };
+        
+        
         init();
 
-        };
+    };
 
-        // A really lightweight plugin wrapper around the constructor,
-        // preventing against multiple instantiations
-        $.fn[pluginName] = function ( options ) {
-            return this.each(function () {
-                if (!$.data(this, 'plugin_' + pluginName)) {
-                    $.data(this, 'plugin_' + pluginName, 
-                    new Plugin( this, options ));
-                }
-            });
-        };
+    $.fn.nuvislider = function (options) {
+        return this.each(function () {
+            var element = $(this);
 
-})( jQuery, window, document );
+            // Return early if this element already has a plugin instance
+            if (element.data('nuvislider')) {
+                return;
+            }
+
+            // pass options to plugin constructor
+            var nuvislider = new NUVISlider(this, options);
+
+            // Store plugin object in this element's data
+            element.data('nuvislider', nuvislider);
+        });
+    };
+})(jQuery);
